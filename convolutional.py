@@ -1,9 +1,9 @@
 #!/usr/bin/python
-#coding=utf-8
+# coding=utf-8
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_face as tff
+import train_and_test as tff
 
 # ----------------参数----------------
 IMAGE_SIZE = 64
@@ -187,6 +187,7 @@ def train_cnn(train_x, train_y, test_x, test_y, train_num, tf_savepath):
         saver.save(sess, tf_savepath)
 
 if __name__ == '__main__':
+    # 用于计算在训练集上的准确率
     path_label_pair_test, _ = tff.get_file_and_label(TEST_IMAGE_DIR_PATH)
     test_x, test_y = tff.get_data_and_label_matrix(path_label_pair_test)
     _, index_to_name = tff.get_file_and_label(TEST_IMAGE_DIR_PATH)
