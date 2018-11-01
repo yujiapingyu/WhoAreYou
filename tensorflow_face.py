@@ -9,10 +9,11 @@ import tensorflow_face_conv as my_conv
 
 # ----------------参数----------------
 IMAGE_SIZE = 64
-TRAIN_NUM = 2
+TRAIN_NUM = 10
 COLOR_BLUE = (255, 0, 0)
 CHECK_POINT_SAVE_PATH = './checkpoint/face.ckpt'
 TRAIN_IMAGE_DIR_PATH = './image/trainfaces'
+TEST_IMAGE_DIR_PATH = './image/testfaces'
 CASCADE_CLASSIFIER = 'haarcascade_frontalface_default.xml'
 DELAY_TIME_MS = 30
 # ------------------------------------
@@ -181,7 +182,8 @@ def test_from_camera(check_point):
             cv2.imshow('img', img)
             key = cv2.waitKey(DELAY_TIME_MS) & 0xff
             
-            if key == ord('q'):
+            # 按ESC键退出
+            if key == 27:
                 break
             
     # 释放摄像头资源
@@ -200,7 +202,9 @@ if __name__ == '__main__':
         # 训练数据
         path_label_pair, _ = get_file_and_label(TRAIN_IMAGE_DIR_PATH)
         train_x, train_y = get_data_and_label_matrix(path_label_pair)
-        my_conv.train_cnn(train_x, train_y, TRAIN_NUM, CHECK_POINT_SAVE_PATH)
+        path_label_pair_test, _ = get_file_and_label(TEST_IMAGE_DIR_PATH)
+        test_x, test_y = get_data_and_label_matrix(path_label_pair_test)
+        my_conv.train_cnn(train_x, train_y, test_x, test_y, TRAIN_NUM, CHECK_POINT_SAVE_PATH)
     else:
         # 测试数据
         test_from_camera(CHECK_POINT_SAVE_PATH)

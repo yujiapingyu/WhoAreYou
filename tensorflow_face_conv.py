@@ -3,10 +3,15 @@
 
 import numpy as np
 import tensorflow as tf
+import tensorflow_face as tff
 
 # ----------------参数----------------
 IMAGE_SIZE = 64
-BATCH_SIZE = 10
+BATCH_SIZE = 20
+TRAIN_IMAGE_DIR_PATH = './image/trainfaces'
+TEST_IMAGE_DIR_PATH = './image/testfaces'
+CASCADE_CLASSIFIER = 'haarcascade_frontalface_default.xml'
+CHECK_POINT_SAVE_PATH = './checkpoint/face.ckpt'
 # ------------------------------------
 
 x_data = tf.placeholder(tf.float32, [None, IMAGE_SIZE, IMAGE_SIZE, 3])
@@ -26,7 +31,7 @@ def weight_variable(shape):
     ------
     随机权值
     '''
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=0.01)
     return tf.Variable(initial)
 
 # 生成指定形状的偏移
@@ -42,7 +47,7 @@ def bias_variable(shape):
     ------
     随机偏移
     '''
-    initial = tf.constant(0.1, shape=shape)
+    initial = tf.truncated_normal(shape, stddev=0.01)
     return tf.Variable(initial)
 
 # 卷积运算
@@ -127,7 +132,7 @@ def create_cnn(class_num):
     return out
 
 # 训练cnn网络
-def train_cnn(train_x, train_y, train_num, tf_savepath):
+def train_cnn(train_x, train_y, test_x, test_y, train_num, tf_savepath):
     '''
     训练cnn网络
     
@@ -153,27 +158,51 @@ def train_cnn(train_x, train_y, train_num, tf_savepath):
     with tf.Session() as sess:
         # 初始化全局变量
         sess.run(tf.global_variables_initializer())
+        # 样本数
+        example_num = len(train_x)
         # batch数为样本总数 // batch大小
-        batch_num = len(train_x) // BATCH_SIZE
-        # 循环训练每一个batch
+        batch_num =  example_num // BATCH_SIZE
+        # 训练train_num次
         for train_i_step in range(train_num):
             # 随机打乱训练数据和标签的顺序
-            r = np.random.permutation(len(train_x))
-            train_x = train_x[r, :]
-            train_y = train_y[r, :]
+            r = np.random.permutation(example_num)
+            train_x_t = train_x[r, :]
+            train_y_t = train_y[r, :]
             
-            # 分批训练
+            # 循环训练每一个batch
             for i in range(batch_num):
-                batch_x = train_x[i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
-                batch_y = train_y[i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
-                sess.run(train_step, feed_dict={x_data:batch_x, y_data:batch_y, keep_prob:0.8})
+                batch_x = train_x_t[i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
+                batch_y = train_y_t[i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
+                # 获取测试数据的准确率
+                sess.run(train_step, feed_dict={x_data:batch_x, y_data:batch_y, keep_prob: 0.8})
+                
+                train_accuracy = accuracy.eval({x_data: test_x, y_data: test_y, keep_prob: 1.0})
+                print('准确率为：%g%%' % (train_accuracy * 100))
         
             # 获取测试数据的准确率
-            train_accuracy = accuracy.eval({x_data: train_x, y_data: train_y, keep_prob:1.0})
+            train_accuracy = accuracy.eval({x_data: test_x, y_data: test_y, keep_prob: 1.0})
             print('第 %d 次训练的准确率为：%g%%' % (train_i_step, train_accuracy * 100))
         
         # 保存训练状态
         saver.save(sess, tf_savepath)
 
 if __name__ == '__main__':
-    pass
+    path_label_pair_test, _ = tff.get_file_and_label(TEST_IMAGE_DIR_PATH)
+    test_x, test_y = tff.get_data_and_label_matrix(path_label_pair_test)
+    _, index_to_name = tff.get_file_and_label(TEST_IMAGE_DIR_PATH)
+    # 定义训练状态保存器
+    out = create_cnn(len(index_to_name))
+    correct_prediction = tf.equal(tf.argmax(out, 1), tf.argmax(y_data, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    saver = tf.train.Saver()
+    with tf.Session() as sess:
+        # 恢复训练状态
+        saver.restore(sess, CHECK_POINT_SAVE_PATH)
+        
+        train_accuracy = accuracy.eval({x_data: test_x, y_data: test_y, keep_prob: 1.0})
+        print('准确率为：%g%%' % (train_accuracy * 100))
+        
+        
+        
+        
+        

@@ -11,6 +11,8 @@ IMAGE_SIZE = 64
 IMAGE_NUM = 200
 COLOR_BLUE = (255, 0, 0)
 TRAIN_IMAGE_DIR_PATH = './image/trainfaces'
+TEST_IMAGE_DIR_PATH = './image/testfaces'
+TRAIN_RATE = 0.7
 DELAY_TIME_MS = 30
 # ------------------------------------
 
@@ -47,20 +49,21 @@ def relight(imgsrc, alpha=1, bias=0):
     img = img.astype(np.uint8)
     return img
 
-def get_face_from_camera(dir_path, name):
+def get_face_from_camera(name):
     '''
     从摄像头获取脸部数据，存入dir_path中name文件夹中
     
     Parameters
     ----------
-    dir_path : 存放图片的目录
-    
     name : 姓名，作为二级目录
     '''
     
     # 得到保存照片的路径
-    faces_dir_path = os.path.join(dir_path, name)
-    create_dir(faces_dir_path)
+    train_faces_dir_path = os.path.join(TRAIN_IMAGE_DIR_PATH, name)
+    create_dir(train_faces_dir_path)
+    
+    test_faces_dir_path = os.path.join(TEST_IMAGE_DIR_PATH, name)
+    create_dir(test_faces_dir_path)
     
     # 打开摄像头
     camera = cv2.VideoCapture(0)
@@ -90,7 +93,10 @@ def get_face_from_camera(dir_path, name):
             face = relight(face, random.uniform(0.5, 1.5), random.randint(-50, 50))
             
             # 将人脸图片进行存储
-            cv2.imwrite(os.path.join(faces_dir_path, str(pic_index)+'.jpg'), face)
+            if pic_index < IMAGE_NUM * TRAIN_RATE:
+                cv2.imwrite(os.path.join(train_faces_dir_path, str(pic_index)+'.jpg'), face)
+            else:
+                cv2.imwrite(os.path.join(test_faces_dir_path, str(pic_index)+'.jpg'), face)
             pic_index += 1
             
             if pic_index == IMAGE_NUM:
@@ -116,4 +122,4 @@ def get_face_from_camera(dir_path, name):
 
 if __name__ == '__main__':
     name = input('Please input your name: ')
-    get_face_from_camera(TRAIN_IMAGE_DIR_PATH, name)
+    get_face_from_camera(name)
